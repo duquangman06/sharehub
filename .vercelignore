@@ -1,0 +1,16 @@
+node_modules
+**/node_modules
+.env
+**/.env
+**/.env.*
+!server/.env.example
+.git
+.vercel
+client/.angular
+client/dist
+server/private
+server/uploads
+server/test
+outputs
+tmp
+*.zip

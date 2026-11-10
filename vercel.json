@@ -1,0 +1,24 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "npm ci --prefix server && npm ci --prefix client",
+  "buildCommand": "npm run build --prefix client",
+  "outputDirectory": "client/dist/client/browser",
+  "functions": {
+    "api/index.js": {
+      "maxDuration": 60,
+      "excludeFiles": "{client/**,outputs/**,tmp/**,docs/**,**/*.zip,server/test/**,server/.env,server/private/**,server/uploads/**}"
+    }
+  },
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "/api/index" },
+    { "source": "/uploads/:path*", "destination": "/api/index" },
+    { "source": "/:path*", "destination": "/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/:path*",
+      "headers": [{ "key": "X-Content-Type-Options", "value": "nosniff" }]
+    }
+  ]
+}

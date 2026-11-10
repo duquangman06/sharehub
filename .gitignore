@@ -1,0 +1,13 @@
+node_modules
+.env
+client/dist
+client/.angular
+server/uploads/*
+!server/uploads/.gitkeep
+
+.vercel
+.env*
+
+.vercel/
+.env.local
+.env.*.local
