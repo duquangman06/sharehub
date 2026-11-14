@@ -25,4 +25,9 @@ function validPeriod(start, end, now = Date.now()) {
 function score(u, penalty = 0) {
   return Math.max(0, Math.min(100, Math.round((u.ratingCount ? u.ratingAvg / 5 * 40 : 20) + (u.kycStatus === 'verified' ? 30 : 0) + Math.min(u.completedCount || 0, 10) * 3 - penalty)));
 }
-module.exports = { TERMS, acceptance, validPeriod, score };
+function ownerEligibility(owner) {
+  if (!owner || owner.accountStatus === 'suspended') return {allowed:false,code:'OWNER_UNAVAILABLE',message:'Chủ tài sản hiện không thể nhận đơn mới. Vui lòng chọn thiết bị khác.'};
+  if (owner.kycStatus !== 'verified') return {allowed:false,code:'OWNER_NOT_VERIFIED',message:`Chủ tài sản ${owner.name || ''} chưa hoàn tất xác minh danh tính nên thiết bị chưa thể nhận đơn. Đây là trạng thái của chủ tài sản, không phải tài khoản người thuê.`};
+  return {allowed:true};
+}
+module.exports = { TERMS, acceptance, validPeriod, score, ownerEligibility };

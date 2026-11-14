@@ -4,7 +4,7 @@ const { requireAuth } = require('../middleware/auth');
 const upload = require('../middleware/upload');
 const { dayDiff, token, ACTIVE, recalcTrust } = require('../utils');
 
-const { TERMS, acceptance, validPeriod } = require('../services/policy');
+const { TERMS, acceptance, validPeriod, ownerEligibility } = require('../services/policy');
 router.get('/terms', (req, res) => res.json(TERMS));
 
 router.use((req, res, next) => {
@@ -49,14 +49,16 @@ router.get('/draft', async (req, res) => {
   const d = req.session.draft;
   if (!d) return res.json(null);
   if (Date.now() > d.expiresAt) { delete req.session.draft; return res.json(null); }
-  const asset = await Asset.findById(d.assetId).populate('owner', 'name avatar');
+  const asset = await Asset.findById(d.assetId).populate('owner', 'name avatar kycStatus accountStatus');
   if (!asset || asset.status !== 'active') return res.json(null);
-  res.json({ ...d, asset, ...price(asset, new Date(d.startDate), new Date(d.endDate), d.coupon) });
+  res.json({ ...d, asset, bookingEligibility:ownerEligibility(asset.owner), ...price(asset, new Date(d.startDate), new Date(d.endDate), d.coupon) });
 });
 router.post('/draft', async (req, res) => {
   const { assetId, startDate, endDate, coupon } = req.body;
   const asset = await Asset.findById(assetId);
   if (!asset || asset.status !== 'active' || !validPeriod(new Date(startDate), new Date(endDate))) return res.status(400).json({ message: 'Thời gian thuê chưa hợp lệ.' });
+  const eligibility = ownerEligibility(await User.findById(asset.owner));
+  if (!eligibility.allowed) return res.status(403).json(eligibility);
   if (!(await isFree(asset, new Date(startDate), new Date(endDate)))) return res.status(409).json({ message: 'Thiết bị không còn trống trong khoảng ngày này.' });
   req.session.draft = { assetId, startDate, endDate, coupon: coupon || '', expiresAt: Date.now() + 15 * 60 * 1000 }; // giữ chỗ 15 phút
   res.json({ ok: true, expiresAt: req.session.draft.expiresAt });
@@ -71,7 +73,8 @@ router.post('/checkout', requireAuth, async (req, res) => {
   const asset = await Asset.findByIdAndUpdate(d.assetId, { $inc: { bookingRevision: 1 } }, { new: true });
   if (!asset || asset.status !== 'active') return res.status(409).json({ message: 'Tài sản không còn nhận đặt thuê.' });
   const owner = await User.findById(asset.owner);
-  if (!owner || owner.accountStatus === 'suspended' || owner.kycStatus !== 'verified') return res.status(403).json({ message: 'Chủ tài sản cần xác minh danh tính trước khi nhận đơn.' });
+  const eligibility = ownerEligibility(owner);
+  if (!eligibility.allowed) return res.status(403).json(eligibility);
   if (String(asset.owner) === String(req.user._id)) return res.status(400).json({ message: 'Bạn không thể thuê thiết bị của chính mình.' });
   const start = new Date(d.startDate), end = new Date(d.endDate);
   if (!(await isFree(asset, start, end))) return res.status(409).json({ message: 'Thiết bị không còn trống trong khoảng ngày này.' });

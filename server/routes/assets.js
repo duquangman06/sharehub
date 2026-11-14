@@ -3,6 +3,7 @@ const { Asset, Booking, Review } = require('../models');
 const { requireAuth } = require('../middleware/auth');
 const upload = require('../middleware/upload');
 const { haversine, slugify, ACTIVE } = require('../utils');
+const { ownerEligibility } = require('../services/policy');
 
 // GET /api/assets?q=&category=&min=&max=&lat=&lng=&radius=&rating=&delivery=&sort=
 router.get('/', async (req, res) => {
@@ -35,9 +36,9 @@ router.get('/mine', requireAuth, async (req, res) => {
 });
 
 router.get('/:id', async (req, res) => {
-  const a = await Asset.findById(req.params.id).populate('owner', 'name avatar bio kycStatus ratingAvg ratingCount trustScore avgResponseMinutes completedCount');
+  const a = await Asset.findById(req.params.id).populate('owner', 'name avatar bio kycStatus accountStatus ratingAvg ratingCount trustScore avgResponseMinutes completedCount');
   if (!a) return res.status(404).json({ message: 'Không tìm thấy thiết bị.' });
-  res.json(a);
+  res.json({...a.toObject(),bookingEligibility:ownerEligibility(a.owner)});
 });
 
 // Ngày đã kín (booking + bảo dưỡng + buffer time)

@@ -1,6 +1,6 @@
 export interface User { _id: string; name: string; email?: string; phone?: string; avatar?: string; bio?: string; role?: 'user' | 'admin';
   accountStatus?: string; kycReview?: any; walletBalance?: number; kycStatus: 'none' | 'pending' | 'verified' | 'rejected'; ratingAvg: number; ratingCount: number; trustScore: number; avgResponseMinutes?: number; completedCount?: number; }
-export interface Asset { _id: string; title: string; category: string; description: string; images: string[]; condition: number; accessories: string[];
+export interface Asset { bookingEligibility?: {allowed:boolean;message?:string}; _id: string; title: string; category: string; description: string; images: string[]; condition: number; accessories: string[];
   pricePerHour: number; pricePerDay: number; deposit: number; bufferHours: number; purchasePrice: number; delivery: string;
   location?: { lat: number; lng: number; address: string }; status: string; ratingAvg: number; ratingCount: number; owner: any; distance?: number | null; }
 export interface Category { _id: string; name: string; slug: string; icon: string; }

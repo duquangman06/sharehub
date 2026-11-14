@@ -38,6 +38,15 @@ test('acceptance rejects missing checkbox, string true, and obsolete version',()
 test('checkout without consent never debits or creates a booking',async()=>{
   const r=await call('/checkout'); assert.equal(r.error.status,400); assert.equal(state.wallet,10000); assert.equal(state.bookings.length,0);
 });
+test('draft blocks unverified owners early and does not replace the existing draft',async()=>{
+  state.owner.kycStatus='pending';const session={draft:{assetId:'original'}};
+  const r=await call('/draft',{assetId,startDate:state.start,endDate:state.end},{session});
+  assert.equal(r.status,403);assert.equal(r.data.code,'OWNER_NOT_VERIFIED');assert.match(r.data.message,/không phải tài khoản người thuê/);assert.equal(session.draft.assetId,'original');assert.equal(state.wallet,10000);
+});
+test('verified active owner permits a draft without charging the renter',async()=>{
+  const session={};const r=await call('/draft',{assetId,startDate:state.start,endDate:state.end},{session});
+  assert.equal(r.status,200);assert.equal(session.draft.assetId,assetId);assert.equal(state.wallet,10000);
+});
 test('checkout records account, timestamp, immutable text and server price',async()=>{
   const r=await call('/checkout',{...agreed(),total:1,deposit:0});
   assert.equal(r.status,201); assert.equal(r.data.total,700); assert.equal(state.wallet,9300);

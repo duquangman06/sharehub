@@ -15,6 +15,7 @@ import { fmtDate } from '../shared/ui';
     @else {
     <div class="card row between mb" [style.background]="left() < 120 ? '#fdf1dc' : 'var(--g-soft)'">
       <span>⏳ Bản nháp còn hiệu lực trong <b>{{ mm() }}:{{ ss() }}</b> để hoàn tất yêu cầu.</span><span class="badge">Ví mô phỏng</span></div>
+    @if (d().bookingEligibility?.allowed === false) { <p class="card small" role="alert">{{d().bookingEligibility.message}} <a routerLink="/search" class="bold">Chọn thiết bị khác →</a></p> }
     <div class="grid g2 checkout-layout" style="grid-template-columns:1.2fr 1fr">
       <div class="col">
         <div class="card"><h3>Thông tin đặt thuê</h3>
@@ -36,7 +37,7 @@ import { fmtDate } from '../shared/ui';
           <hr style="border:0;border-top:1px solid var(--line);width:100%">
           <div class="row between bill-total" style="font-size:1.15rem"><b>Tổng cộng</b><b style="color:var(--g)">{{ money(d().total) }}</b></div>
           <div class="mut">Tiền cọc được hoàn sau khi kiểm tra hiện trạng và hoàn tất đơn.</div>
-          <button class="btn block" [disabled]="busy() || !accepted || !terms() || left() === 0" (click)="pay()">Xác nhận thanh toán {{ money(d().total) }}</button>
+          <button class="btn block" [disabled]="busy() || !accepted || !terms() || left() === 0 || d().bookingEligibility?.allowed === false" (click)="pay()">Xác nhận thanh toán {{ money(d().total) }}</button>
           <button class="btn ghost block" (click)="cancel()">Hủy</button></div></div>
     </div> }
   </div>`,

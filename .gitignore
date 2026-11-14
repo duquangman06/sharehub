@@ -11,3 +11,9 @@ server/uploads/*
 .vercel/
 .env.local
 .env.*.local
+
+# Generated reports, temporary work files and source archives
+/outputs/
+/tmp/
+*.zip
+!server/.env.example

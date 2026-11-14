@@ -14,7 +14,7 @@ test('replica-set integration: concurrent booking and repeated refunds', { skip:
     const hello = await mongoose.connection.db.admin().command({hello:1});
     assert.ok(hello.setName || hello.msg === 'isdbgrid', 'Integration test requires replica set/Atlas');
     const owner = await User.create({name:'Test owner',email:'owner@test.invalid',password:'unused',kycStatus:'verified'});
-    const renters = await User.create([0,1].map(i=>({name:'Renter '+i,email:i+'@test.invalid',password:'unused',walletBalance:10000})));
+    const renters = await User.create([0,1].map(i=>({name:'Renter '+i,email:i+'@test.invalid',password:'unused',walletBalance:10000,kycStatus:'verified'})));
     const asset = await Asset.create({owner:owner._id,title:'Test camera',category:'test',pricePerDay:100,deposit:500,status:'active'});
     const sessions = new Map(renters.map(u=>[String(u._id),{userId:String(u._id)}]));
     sessions.set(String(owner._id),{userId:String(owner._id)});
@@ -26,6 +26,11 @@ test('replica-set integration: concurrent booking and repeated refunds', { skip:
     const base='http://127.0.0.1:'+server.address().port+'/api/bookings';
     async function post(user,path,body={}){const r=await fetch(base+path,{method:'POST',headers:{'content-type':'application/json','x-test-user':String(user._id)},body:JSON.stringify(body)});return {status:r.status,body:await r.json()};}
     const startDate=new Date(Date.now()+86400000).toISOString(),endDate=new Date(Date.now()+3*86400000).toISOString();
+    await User.updateOne({_id:owner._id},{$set:{kycStatus:'pending'}});
+    const blocked=await post(renters[0],'/draft',{assetId:asset._id,startDate,endDate});
+    assert.equal(blocked.status,403);assert.equal(blocked.body.code,'OWNER_NOT_VERIFIED');
+    assert.equal((await User.findById(renters[0]._id)).walletBalance,10000);
+    await User.updateOne({_id:owner._id},{$set:{kycStatus:'verified'}});
     for(const u of renters) assert.equal((await post(u,'/draft',{assetId:asset._id,startDate,endDate})).status,200);
     const results=await Promise.all(renters.map(u=>post(u,'/checkout',{acceptTerms:true,termsVersion:TERMS.version,paymentMethod:'wallet'})));
     assert.equal(results.filter(r=>r.status===201).length,1);
@@ -41,7 +46,8 @@ test('replica-set integration: concurrent booking and repeated refunds', { skip:
     assert.equal((await Booking.findById(b._id)).status,'cancelled');
   } finally {
     if(server)await new Promise(resolve=>server.close(resolve));
-    if(mongoose.connection.readyState===1){assert.ok(mongoose.connection.name.startsWith('sharehub_test_'));assert.equal(mongoose.connection.name,dbName);await mongoose.connection.dropDatabase();}
-    await mongoose.disconnect();
+    try {
+      if(mongoose.connection.readyState===1){assert.ok(mongoose.connection.name.startsWith('sharehub_test_'));assert.equal(mongoose.connection.name,dbName);for(const collection of await mongoose.connection.db.collections())await collection.deleteMany({});}
+    }finally{await mongoose.disconnect();}
   }
 });

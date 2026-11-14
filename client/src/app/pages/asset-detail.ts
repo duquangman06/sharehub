@@ -71,8 +71,9 @@ import { StarsComponent, fmtDate, iso } from '../shared/ui';
         <hr style="width:100%;border:0;border-top:1px solid var(--line)">
         <div class="row between bill-total" style="font-size:1.1rem"><b>Tổng cộng</b><b style="color:var(--g)">{{ money(total()) }}</b></div>
       </div>
-      <button class="btn block mt" [disabled]="!end() || busy()" (click)="book()">Đặt thuê ngay</button>
-      <button class="btn ghost block" style="margin-top:8px" [disabled]="!end() || busy()" (click)="book()">Gửi yêu cầu thuê</button>
+      @if (asset()!.bookingEligibility?.allowed === false) { <p class="small mt" role="status">{{asset()!.bookingEligibility?.message}} <a routerLink="/search" class="bold">Chọn thiết bị khác →</a></p> }
+      <button class="btn block mt" [disabled]="!end() || busy() || asset()!.bookingEligibility?.allowed === false" (click)="book()">Đặt thuê ngay</button>
+      <button class="btn ghost block" style="margin-top:8px" [disabled]="!end() || busy() || asset()!.bookingEligibility?.allowed === false" (click)="book()">Gửi yêu cầu thuê</button>
     </div>
   </div></div> }`,
 })
