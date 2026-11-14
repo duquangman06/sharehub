@@ -50,3 +50,8 @@ test('unavailable AI is explicitly marked basic and does not falsely claim confi
 test('invalid dates stop catalog lookup before any availability claim',async()=>{
  const result=await assistant.answer('Thuê máy ảnh từ 2020-01-01 đến 2020-01-03',{});assert.equal(result.cards.length,0);assert.match(result.text,/chưa hợp lệ/);assert.equal(query,null);
 });
+test('basic mode reads Vietnamese thousands separators without shrinking the budget',()=>{
+ assert.equal(assistant.basic('Tìm máy ảnh dưới 500.000đ mỗi ngày').filters.budget.amount,500000);
+ assert.equal(assistant.basic('Ngân sách 1,5 triệu cho máy ảnh').filters.budget.amount,1500000);
+ assert.equal(assistant.basic('Thuê lều 2 ngày').filters.query,'lều');
+});

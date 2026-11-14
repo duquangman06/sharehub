@@ -69,8 +69,8 @@ function basic(message,previous={}) {
  for(const [slug,terms] of Object.entries({'cameras':['may anh','camera','chup anh','chup hinh'],'camping-gear':['cam trai','leu','camping'],'drones':['flycam','drone','may bay'],'speakers-audio':['loa','am thanh','micro'],'studio-lights':['den studio','den chup'],'event-tools':['su kien','may chieu'],'small-machinery':['may khoan','dung cu'],'study-equipment':['hoc tap','ipad','laptop']}))if(terms.some(t=>text.includes(t))){category=slug;break;}
  if(category){f.category=category;f.query=null;}
  if(text.includes('leu'))f.query='lều';
- const budget=text.match(/(\d+(?:[.,]\d+)?)\s*(trieu|tr|nghin|ngan|k|đ|d|vnd)\b/);
- if(budget)f.budget={amount:Math.round(Number(budget[1].replace(',','.'))*(/^(trieu|tr)$/.test(budget[2])?1e6:/^(nghin|ngan|k)$/.test(budget[2])?1000:1)),scope:/moi ngay|\/ngay|mot ngay/.test(text)?'per_day':'rental_total'};
+ const budget=text.match(/(\d+(?:[.,]\d+)*)\s*(trieu|tr|nghin|ngan|k|đ|d|vnd)\b/);
+ if(budget){const raw=budget[1];const number=Number(/^\d{1,3}(?:[.,]\d{3})+$/.test(raw)?raw.replace(/[.,]/g,''):raw.replace(',','.'));f.budget={amount:Math.round(number*(/^(trieu|tr)$/.test(budget[2])?1e6:/^(nghin|ngan|k)$/.test(budget[2])?1000:1)),scope:/moi ngay|\/ngay|mot ngay/.test(text)?'per_day':'rental_total'};}
  const duration=text.match(/(\d+)\s*ngay/);if(duration)f.durationDays=Number(duration[1]);
  for(const place of ['bien hoa','thu duc','ho chi minh','dong nai','ha noi'])if(text.includes(place))f.area=place;
  const dates=message.match(/\d{4}-\d{2}-\d{2}/g);if(dates?.length===2)[f.startDate,f.endDate]=dates;
