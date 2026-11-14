@@ -33,6 +33,7 @@ test('availability respects active booking buffers and maintenance',async()=>{
 });
 test('area and model keywords are matched against catalog data',async()=>{
  assert.equal((await assistant.retrieve({area:'Biên Hòa',query:'máy ảnh'})).length,1);
+ assert.equal((await assistant.retrieve({area:'dong nai'})).length,1);
  assert.equal((await assistant.retrieve({area:'Hà Nội'})).length,0);
  assert.equal((await assistant.retrieve({query:'không tồn tại'})).length,0);
 });
@@ -54,4 +55,11 @@ test('basic mode reads Vietnamese thousands separators without shrinking the bud
  assert.equal(assistant.basic('Tìm máy ảnh dưới 500.000đ mỗi ngày').filters.budget.amount,500000);
  assert.equal(assistant.basic('Ngân sách 1,5 triệu cho máy ảnh').filters.budget.amount,1500000);
  assert.equal(assistant.basic('Thuê lều 2 ngày').filters.query,'lều');
+});
+test('gateway uses only server credentials and keeps them out of returned chat data',async()=>{
+ process.env.AI_GATEWAY_API_KEY='server-key-test';
+ let authorization;
+ const fake=async(url,options)=>{assert.equal(url,'https://ai-gateway.vercel.sh/v1/chat/completions');authorization=options.headers.authorization;return {ok:true,json:async()=>({choices:[{message:{content:JSON.stringify({intent:'faq',reply:'Tiền cọc tách riêng tiền thuê.',filters:{}})}}]})};};
+ const result=await assistant.answer('Tiền cọc là gì?',{},null,fake);
+ assert.equal(result.mode,'ai');assert.equal(authorization,'Bearer server-key-test');assert(!JSON.stringify(result).includes('server-key-test'));
 });

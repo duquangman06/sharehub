@@ -2,7 +2,7 @@ const { Asset, Booking, User } = require('../models');
 const { ACTIVE, dayDiff } = require('../utils');
 const { TERMS } = require('./policy');
 const categories = {'cameras':'Máy ảnh','camping-gear':'Đồ cắm trại','drones':'Máy bay mini','event-tools':'Thiết bị sự kiện','small-machinery':'Dụng cụ & máy móc','speakers-audio':'Loa & âm thanh','studio-lights':'Đèn phòng chụp','study-equipment':'Thiết bị học tập'};
-const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').toLowerCase();
+const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/đ/g,'d');
 const today = () => new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 const amount = n => n.toLocaleString('vi-VN')+'đ';
 function provider() {
