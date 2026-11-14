@@ -14,6 +14,10 @@ const User = mongoose.model('User', new Schema({
   kycImages: [String],
   accountStatus: { type: String, enum: ['active', 'suspended'], default: 'active' },
   kycConsentAt: Date,
+  isDemo: { type: Boolean, default: false },
+  demoKey: { type: String, unique: true, sparse: true },
+  kycSubmission: { documentType: { type: String, enum: ['cccd', 'passport'] }, documentNumber: String, fullName: String, submittedAt: Date },
+  kycHistory: [{ status: String, note: String, reviewedAt: Date, reviewedBy: { type: Types.ObjectId, ref: 'User' } }],
   kycReview: { note: String, reviewedAt: Date, reviewedBy: { type: Types.ObjectId, ref: 'User' } },
   ratingAvg: { type: Number, default: 0 },
   ratingCount: { type: Number, default: 0 },
@@ -29,6 +33,8 @@ const Category = mongoose.model('Category', new Schema({
 }));
 
 const assetSchema = new Schema({
+  isDemo: { type: Boolean, default: false },
+  demoKey: { type: String, unique: true, sparse: true },
   owner: { type: Types.ObjectId, ref: 'User', required: true, index: true },
   title: { type: String, required: true, trim: true },
   slug: { type: String, index: true },
@@ -57,6 +63,8 @@ assetSchema.index({ status: 1, category: 1, pricePerDay: 1 });
 const Asset = mongoose.model('Asset', assetSchema);
 
 const Booking = mongoose.model('Booking', new Schema({
+  isDemo: { type: Boolean, default: false },
+  demoKey: { type: String, unique: true, sparse: true },
   asset: { type: Types.ObjectId, ref: 'Asset', required: true },
   renter: { type: Types.ObjectId, ref: 'User', required: true, index: true },
   owner: { type: Types.ObjectId, ref: 'User', required: true, index: true },
@@ -90,6 +98,10 @@ const Booking = mongoose.model('Booking', new Schema({
     status: { type: String, enum: ['open', 'resolved'] },
     refundToRenterPercent: Number,
     compensationToOwner: Number,
+    refundToRenter: Number,
+    rentalReleasedToOwner: Number,
+    depositAtResolution: Number,
+    resolvedBy: { type: Types.ObjectId, ref: 'User' },
     adminNote: String,
     resolvedAt: Date,
   },

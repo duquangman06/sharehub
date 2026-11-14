@@ -8,6 +8,7 @@
     "dev": "nodemon server.js",
     "seed": "node seed.js",
     "seed:empty": "node seed-empty.js",
+    "seed:admin-demo": "node seed-admin-demo.js",
     "test": "node --test test/*.test.js"
   },
   "dependencies": {
