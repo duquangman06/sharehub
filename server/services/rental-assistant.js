@@ -7,7 +7,7 @@ const today = () => new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Ho_Chi_Minh'
 const amount = n => n.toLocaleString('vi-VN')+'đ';
 let resolvedGeminiModel=null;
 function provider() {
- if(process.env.GEMINI_API_KEY)return {kind:'gemini',key:process.env.GEMINI_API_KEY,model:process.env.GEMINI_MODEL||resolvedGeminiModel||'gemini-2.5-flash-lite'};
+ if(process.env.GEMINI_API_KEY)return {kind:'gemini',key:process.env.GEMINI_API_KEY,model:process.env.GEMINI_MODEL||resolvedGeminiModel||'gemini-flash-lite-latest'};
  const key=process.env.AI_GATEWAY_API_KEY||process.env.VERCEL_OIDC_TOKEN;
  return key?{kind:'gateway',key,model:process.env.AI_GATEWAY_MODEL||'google/gemini-2.5-flash-lite'}:null;
 }
