@@ -58,7 +58,12 @@ async function plan(message,history,filters,cards,fetcher=fetch) {
   body={model:config.model,messages:[{role:'system',content:facts},{role:'user',content:user}],temperature:0.15,max_tokens:1800,response_format:{type:'json_object'}};
  }
  const response=await fetcher(url,{method:'POST',headers,body:JSON.stringify(body),signal:AbortSignal.timeout(22000)});
- if(!response.ok){const e=new Error('AI provider unavailable');e.providerStatus=response.status;throw e;}
+ if(!response.ok){
+  const e=new Error('AI provider unavailable');e.providerStatus=response.status;
+  const failure=await response.json().catch(()=>({}));const description=String(failure.error?.message||'');
+  e.providerReason=/api.?key.*not valid|API_KEY_INVALID/i.test(description)?'invalid_key':/quota|rate.?limit|exceed/i.test(description)?'quota':/responseJsonSchema|schema|generationConfig/i.test(description)?'request_schema':/model.*not found|not found.*model|not supported for generateContent/i.test(description)?'model_unavailable':/region|location|country/i.test(description)?'region':/permission|denied|blocked/i.test(description)?'permission':'provider_error';
+  throw e;
+ }
  const data=await response.json();
  const content=config.kind==='gemini'?data.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join(''):data.choices?.[0]?.message?.content;
  if(!content)throw new Error('Empty AI response');
@@ -113,4 +118,9 @@ async function answer(message,conversation,userId,fetcher=fetch) {
  }
  return {text:text||'Bạn muốn tìm thiết bị hay hỏi về quy trình thuê của ShareHub?',cards,filters:p.filters,mode,reason,generatedAt:new Date()};
 }
-module.exports={answer,cleanPlan,dateCheck,retrieve,provider,basic};
+async function diagnostics(fetcher=fetch){
+ const c=provider();if(!c)return {configured:false,ok:false,reason:'not_configured'};
+ try{await plan('Tiền cọc và tiền thuê khác nhau thế nào?',[],{},[],fetcher);return {configured:true,ok:true,provider:c.kind,model:c.model};}
+ catch(e){return {configured:true,ok:false,provider:c.kind,model:c.model,status:e.providerStatus||null,reason:e.providerReason||'invalid_response'};}
+}
+module.exports={answer,cleanPlan,dateCheck,retrieve,provider,basic,diagnostics};

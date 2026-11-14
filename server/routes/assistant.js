@@ -1,6 +1,7 @@
 const router=require('express').Router();
 const mongoose=require('mongoose');const crypto=require('crypto');
 const {User}=require('../models');const assistant=require('../services/rental-assistant');
+const {requireAuth,requireAdmin}=require('../middleware/auth');
 const chatSchema=new mongoose.Schema({key:{type:String,unique:true},user:{type:mongoose.Schema.Types.ObjectId,ref:'User'},messages:[{role:String,text:String,cards:[mongoose.Schema.Types.Mixed],mode:String,at:Date}],filters:mongoose.Schema.Types.Mixed,lastCards:[mongoose.Schema.Types.Mixed],busyUntil:Date,expiresAt:{type:Date,index:{expireAfterSeconds:0}}},{timestamps:true});
 const Chat=mongoose.models.AssistantConversation||mongoose.model('AssistantConversation',chatSchema);
 const quotaSchema=new mongoose.Schema({_id:String,count:Number,expiresAt:{type:Date,index:{expireAfterSeconds:0}}});
@@ -12,6 +13,7 @@ router.use(async(req,res,next)=>{
  next();
 });
 router.get('/thread',async(req,res)=>{const c=await Chat.findOne({key:req.assistantKey,expiresAt:{$gt:new Date()}}).lean();res.json({messages:c?.messages||[],configured:!!assistant.provider()});});
+router.post('/diagnostics',requireAuth,requireAdmin,async(req,res)=>res.json(await assistant.diagnostics()));
 router.post('/message',async(req,res)=>{
  const message=typeof req.body?.message==='string'?req.body.message.trim():'';
  if(!message||message.length>1200)return res.status(400).json({message:'Nhập câu hỏi từ 1 đến 1.200 ký tự.'});

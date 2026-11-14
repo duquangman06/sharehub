@@ -63,3 +63,8 @@ test('gateway uses only server credentials and keeps them out of returned chat d
  const result=await assistant.answer('Tiền cọc là gì?',{},null,fake);
  assert.equal(result.mode,'ai');assert.equal(authorization,'Bearer server-key-test');assert(!JSON.stringify(result).includes('server-key-test'));
 });
+test('admin diagnostics classify upstream errors without exposing keys or raw provider messages',async()=>{
+ process.env.GEMINI_API_KEY='never-return-this-secret';
+ const result=await assistant.diagnostics(async()=>({ok:false,status:429,json:async()=>({error:{message:'Quota exceeded. never-return-this-secret'}})}));
+ assert.equal(result.reason,'quota');assert.equal(result.status,429);assert(!JSON.stringify(result).includes('never-return-this-secret'));
+});
