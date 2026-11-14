@@ -8,5 +8,5 @@ import { ApiService } from '../../core/services';
 export class AdminOverviewComponent implements OnInit {
   private api = inject(ApiService); s = signal<any>(null);
   ngOnInit() { this.api.get('/api/admin/stats').subscribe(s => this.s.set(s)); }
-  cards(s: any) { return [['Users', s.users], ['Active listings', s.assets], ['Bookings', s.bookings], ['Listings awaiting approval', s.pendingAssets], ['eKYC awaiting review', s.pendingKyc], ['Open disputes', s.openDisputes]]; }
+  cards(s: any) { return [['Thành viên', s.users], ['Tin đang hoạt động', s.assets], ['Đơn thuê', s.bookings], ['Tin chờ duyệt', s.pendingAssets], ['Hồ sơ chờ xác minh', s.pendingKyc], ['Tranh chấp đang mở', s.openDisputes]]; }
 }

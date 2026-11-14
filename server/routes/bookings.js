@@ -56,8 +56,8 @@ router.get('/draft', async (req, res) => {
 router.post('/draft', async (req, res) => {
   const { assetId, startDate, endDate, coupon } = req.body;
   const asset = await Asset.findById(assetId);
-  if (!asset || asset.status !== 'active' || !validPeriod(new Date(startDate), new Date(endDate))) return res.status(400).json({ message: 'Invalid rental period.' });
-  if (!(await isFree(asset, new Date(startDate), new Date(endDate)))) return res.status(409).json({ message: 'Those dates are no longer available.' });
+  if (!asset || asset.status !== 'active' || !validPeriod(new Date(startDate), new Date(endDate))) return res.status(400).json({ message: 'Thời gian thuê chưa hợp lệ.' });
+  if (!(await isFree(asset, new Date(startDate), new Date(endDate)))) return res.status(409).json({ message: 'Thiết bị không còn trống trong khoảng ngày này.' });
   req.session.draft = { assetId, startDate, endDate, coupon: coupon || '', expiresAt: Date.now() + 15 * 60 * 1000 }; // giữ chỗ 15 phút
   res.json({ ok: true, expiresAt: req.session.draft.expiresAt });
 });
@@ -66,22 +66,22 @@ router.delete('/draft', (req, res) => { delete req.session.draft; res.json({ ok:
 // Thanh toán + tạo đơn (đồng bộ vĩnh viễn từ Session → MongoDB)
 router.post('/checkout', requireAuth, async (req, res) => {
   const d = req.session.draft;
-  if (!d || Date.now() > d.expiresAt) return res.status(410).json({ message: 'Your 15-minute hold has expired. Please select dates again.' });
+  if (!d || Date.now() > d.expiresAt) return res.status(410).json({ message: 'Bản nháp 15 phút đã hết hạn. Vui lòng chọn lại ngày thuê.' });
   const termsAcceptance = acceptance(req.body, req.user._id);
   const asset = await Asset.findByIdAndUpdate(d.assetId, { $inc: { bookingRevision: 1 } }, { new: true });
   if (!asset || asset.status !== 'active') return res.status(409).json({ message: 'Tài sản không còn nhận đặt thuê.' });
   const owner = await User.findById(asset.owner);
   if (!owner || owner.accountStatus === 'suspended' || owner.kycStatus !== 'verified') return res.status(403).json({ message: 'Chủ tài sản cần xác minh danh tính trước khi nhận đơn.' });
-  if (String(asset.owner) === String(req.user._id)) return res.status(400).json({ message: 'You cannot rent your own item.' });
+  if (String(asset.owner) === String(req.user._id)) return res.status(400).json({ message: 'Bạn không thể thuê thiết bị của chính mình.' });
   const start = new Date(d.startDate), end = new Date(d.endDate);
-  if (!(await isFree(asset, start, end))) return res.status(409).json({ message: 'Those dates are no longer available.' });
+  if (!(await isFree(asset, start, end))) return res.status(409).json({ message: 'Thiết bị không còn trống trong khoảng ngày này.' });
   const p = price(asset, start, end, d.coupon);
   if (!validPeriod(start, end)) return res.status(400).json({ message: 'Thời gian thuê không hợp lệ.' });
   const method = req.body.paymentMethod || 'wallet';
   if (method !== 'wallet') return res.status(400).json({ message: 'Chỉ hỗ trợ ví mô phỏng; cổng thanh toán chưa kết nối.' });
   if (method === 'wallet') {
     const debited = await User.findOneAndUpdate({ _id: req.user._id, walletBalance: { $gte: p.total } }, { $inc: { walletBalance: -p.total } });
-    if (!debited) return res.status(402).json({ message: 'Insufficient wallet balance.' });
+    if (!debited) return res.status(402).json({ message: 'Số dư ví mô phỏng chưa đủ.' });
 
   }
   const booking = await Booking.create({
@@ -101,9 +101,9 @@ router.get('/', requireAuth, async (req, res) => {
 
 router.get('/:id', requireAuth, async (req, res) => {
   const b = await Booking.findById(req.params.id).populate('asset').populate('renter owner', 'name avatar trustScore ratingAvg phone kycStatus');
-  if (!b) return res.status(404).json({ message: 'Booking not found.' });
+  if (!b) return res.status(404).json({ message: 'Không tìm thấy đơn thuê.' });
   const uid = String(req.user._id);
-  if (![String(b.renter._id), String(b.owner._id)].includes(uid) && req.user.role !== 'admin') return res.status(403).json({ message: 'Forbidden.' });
+  if (![String(b.renter._id), String(b.owner._id)].includes(uid) && req.user.role !== 'admin') return res.status(403).json({ message: 'Bạn không có quyền thực hiện thao tác này.' });
   const obj = b.toObject();
   const isRenter = uid === String(b.renter._id);
   // Mỗi bên chỉ thấy mã QR mình cần hiển thị
@@ -114,19 +114,19 @@ router.get('/:id', requireAuth, async (req, res) => {
 
 async function loadMine(req, res, role) {
   const b = await Booking.findById(req.params.id);
-  if (!b || String(b[role]) !== String(req.user._id)) { res.status(403).json({ message: 'Forbidden.' }); return null; }
+  if (!b || String(b[role]) !== String(req.user._id)) { res.status(403).json({ message: 'Bạn không có quyền thực hiện thao tác này.' }); return null; }
   return b;
 }
 
 // Chủ đồ chấp nhận / từ chối → khi chấp nhận, tiền được "capture" (đã thanh toán, cọc bị giữ)
 router.post('/:id/approve', requireAuth, async (req, res) => {
   const b = await loadMine(req, res, 'owner'); if (!b) return;
-  if (b.status !== 'pending') return res.status(400).json({ message: 'Booking is not pending.' });
+  if (b.status !== 'pending') return res.status(400).json({ message: 'Đơn thuê không còn ở trạng thái chờ duyệt.' });
   b.status = 'paid'; b.paymentStatus = 'captured'; await b.save(); res.json(b);
 });
 router.post('/:id/reject', requireAuth, async (req, res) => {
   const b = await loadMine(req, res, 'owner'); if (!b) return;
-  if (b.status !== 'pending') return res.status(400).json({ message: 'Booking is not pending.' });
+  if (b.status !== 'pending') return res.status(400).json({ message: 'Đơn thuê không còn ở trạng thái chờ duyệt.' });
   b.status = 'rejected'; b.rejectReason = req.body.reason || 'No reason given';
   b.paymentStatus = 'refunded';
   await User.updateOne({ _id: b.renter }, { $inc: { walletBalance: b.total } });
@@ -134,7 +134,7 @@ router.post('/:id/reject', requireAuth, async (req, res) => {
 });
 router.post('/:id/cancel', requireAuth, async (req, res) => {
   const b = await loadMine(req, res, 'renter'); if (!b) return;
-  if (!['pending', 'paid'].includes(b.status)) return res.status(400).json({ message: 'Cannot cancel now.' });
+  if (!['pending', 'paid'].includes(b.status)) return res.status(400).json({ message: 'Không thể hủy đơn ở bước hiện tại.' });
   b.status = 'cancelled'; b.paymentStatus = 'refunded';
   await User.updateOne({ _id: b.renter }, { $inc: { walletBalance: b.total } });
   await b.save(); res.json(b);
@@ -143,8 +143,8 @@ router.post('/:id/cancel', requireAuth, async (req, res) => {
 // CHECK-IN: người thuê quét QR của chủ (nhập/mở token) + chụp tối đa 4 ảnh hiện trạng
 router.post('/:id/checkin', requireAuth, upload.array('photos', 4), async (req, res) => {
   const b = await loadMine(req, res, 'renter'); if (!b) return;
-  if (b.status !== 'paid') return res.status(400).json({ message: 'Booking must be paid/approved first.' });
-  if ((req.body.token || '').toUpperCase() !== b.pickupToken) return res.status(400).json({ message: 'Invalid QR code.' });
+  if (b.status !== 'paid') return res.status(400).json({ message: 'Đơn thuê cần được thanh toán và duyệt trước.' });
+  if ((req.body.token || '').toUpperCase() !== b.pickupToken) return res.status(400).json({ message: 'Mã bàn giao chưa đúng.' });
   if (!req.files?.length || !String(req.body.note || '').trim()) return res.status(400).json({ message: 'Cần ảnh và biên bản hiện trạng, phụ kiện trước khi nhận.' });
   if (Date.now() < +b.startDate || Date.now() >= +b.endDate) return res.status(400).json({ message: 'Chỉ nhận trong khoảng thời gian thuê.' });
   b.pickupNote = String(req.body.note).trim().slice(0, 2000);
@@ -154,8 +154,8 @@ router.post('/:id/checkin', requireAuth, upload.array('photos', 4), async (req, 
 // CHECK-OUT: chủ quét QR của người thuê + chụp ảnh đối chiếu
 router.post('/:id/checkout', requireAuth, upload.array('photos', 4), async (req, res) => {
   const b = await loadMine(req, res, 'owner'); if (!b) return;
-  if (b.status !== 'picked_up') return res.status(400).json({ message: 'Item has not been picked up.' });
-  if ((req.body.token || '').toUpperCase() !== b.returnToken) return res.status(400).json({ message: 'Invalid QR code.' });
+  if (b.status !== 'picked_up') return res.status(400).json({ message: 'Tài sản chưa được xác nhận đã nhận.' });
+  if ((req.body.token || '').toUpperCase() !== b.returnToken) return res.status(400).json({ message: 'Mã bàn giao chưa đúng.' });
   if (!req.files?.length || !String(req.body.note || '').trim()) return res.status(400).json({ message: 'Cần ảnh và biên bản trả tài sản.' });
   b.returnNote = String(req.body.note).trim().slice(0, 2000);
   b.checkoutPhotos = (req.files || []).map(f => '/uploads/' + f.filename);
@@ -164,7 +164,7 @@ router.post('/:id/checkout', requireAuth, upload.array('photos', 4), async (req,
 // Chủ xác nhận không có vấn đề → hoàn cọc, hoàn tất
 router.post('/:id/complete', requireAuth, async (req, res) => {
   const b = await loadMine(req, res, 'owner'); if (!b) return;
-  if (b.status !== 'returned') return res.status(400).json({ message: 'Item has not been returned.' });
+  if (b.status !== 'returned') return res.status(400).json({ message: 'Tài sản chưa được xác nhận đã trả.' });
   await User.updateOne({ _id: b.renter }, { $inc: { walletBalance: b.deposit, completedCount: 1 } });
   await User.updateOne({ _id: b.owner }, { $inc: { walletBalance: b.rentalFee - b.discount, completedCount: 1 } });
   b.status = 'completed'; b.paymentStatus = 'partial'; await b.save();
@@ -176,8 +176,8 @@ router.post('/:id/complete', requireAuth, async (req, res) => {
 router.post('/:id/dispute', requireAuth, async (req, res) => {
   const b = await Booking.findById(req.params.id);
   const uid = String(req.user._id);
-  if (!b || ![String(b.renter), String(b.owner)].includes(uid)) return res.status(403).json({ message: 'Forbidden.' });
-  if (!['picked_up', 'returned'].includes(b.status)) return res.status(400).json({ message: 'Dispute is only possible after pickup.' });
+  if (!b || ![String(b.renter), String(b.owner)].includes(uid)) return res.status(403).json({ message: 'Bạn không có quyền thực hiện thao tác này.' });
+  if (!['picked_up', 'returned'].includes(b.status)) return res.status(400).json({ message: 'Chỉ mở tranh chấp sau khi đã nhận tài sản.' });
   if (String(req.body.reason || '').trim().length < 10) return res.status(400).json({message:'Mô tả sự cố ít nhất 10 ký tự.'});
   b.status = 'disputed'; b.dispute = { openedBy: req.user._id, reason: req.body.reason || 'Issue reported', status: 'open' };
   await b.save(); res.json(b);
@@ -199,9 +199,9 @@ router.post('/:id/dispute-evidence', requireAuth, upload.array('photos', 4), asy
 router.post('/:id/review', requireAuth, async (req, res) => {
   const b = await Booking.findById(req.params.id);
   const uid = String(req.user._id);
-  if (!b || b.status !== 'completed' || ![String(b.renter), String(b.owner)].includes(uid)) return res.status(400).json({ message: 'Cannot review this booking.' });
+  if (!b || b.status !== 'completed' || ![String(b.renter), String(b.owner)].includes(uid)) return res.status(400).json({ message: 'Chưa thể đánh giá đơn thuê này.' });
   const isRenter = uid === String(b.renter);
-  if (isRenter ? b.reviewedByRenter : b.reviewedByOwner) return res.status(400).json({ message: 'Already reviewed.' });
+  if (isRenter ? b.reviewedByRenter : b.reviewedByOwner) return res.status(400).json({ message: 'Bạn đã đánh giá đơn thuê này.' });
   const to = isRenter ? b.owner : b.renter;
   const rating = Math.min(5, Math.max(1, +req.body.rating || 5));
   await Review.create({ booking: b._id, asset: b.asset, from: req.user._id, to, rating, comment: req.body.comment });

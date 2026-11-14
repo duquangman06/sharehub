@@ -8,34 +8,34 @@ import { ApiService, CatalogService, ToastService } from '../../core/services';
   standalone: true, imports: [ReactiveFormsModule],
   styles: [`#pick{height:260px;border-radius:12px;z-index:1}.thumb{width:80px;height:60px;object-fit:cover;border-radius:8px}`],
   template: `
-  <form class="card" [formGroup]="form" (ngSubmit)="save()"><h2>{{ id ? 'Edit asset' : 'List a new asset' }}</h2>
+  <form class="card" [formGroup]="form" (ngSubmit)="save()"><h2>{{ id ? 'Chỉnh sửa thiết bị' : 'Đăng thiết bị cho thuê' }}</h2>
     <div class="grid g2">
       <div class="col">
-        <div><label>Title *</label><input formControlName="title" [class.is-invalid]="inv('title')"></div>
-        <div><label>Category *</label><select formControlName="category" [class.is-invalid]="inv('category')"><option value="">Select…</option>@for (c of cat.categories(); track c._id) {<option [value]="c.slug">{{ c.icon }} {{ c.name }}</option>}</select></div>
-        <div><label>Description</label><textarea rows="3" formControlName="description"></textarea></div>
-        <div><label>Accessories (comma separated)</label><input formControlName="accessories" placeholder="Battery, charger, memory card"></div>
-        <div><label>Condition (remaining life %)</label><input type="number" min="1" max="100" formControlName="condition"></div>
-        <div><label>Photos (multiple)</label><input type="file" multiple accept="image/*" (change)="images = $any($event.target).files">
+        <div><label for="asset-form-field-1">Tên thiết bị *</label><input id="asset-form-field-1" formControlName="title" [class.is-invalid]="inv('title')"></div>
+        <div><label for="asset-form-field-2">Danh mục *</label><select id="asset-form-field-2" formControlName="category" [class.is-invalid]="inv('category')"><option value="">Chọn danh mục…</option>@for (c of cat.categories(); track c._id) {<option [value]="c.slug">{{ c.icon }} {{ c.name }}</option>}</select></div>
+        <div><label for="asset-form-field-3">Mô tả</label><textarea id="asset-form-field-3" rows="3" formControlName="description"></textarea></div>
+        <div><label for="asset-form-field-4">Phụ kiện (phân cách bằng dấu phẩy)</label><input id="asset-form-field-4" formControlName="accessories" placeholder="Pin, sạc, thẻ nhớ"></div>
+        <div><label for="asset-form-field-5">Tình trạng thiết bị (%)</label><input id="asset-form-field-5" type="number" min="1" max="100" formControlName="condition"></div>
+        <div><label for="asset-form-field-6">Ảnh thiết bị (có thể chọn nhiều ảnh)</label><input id="asset-form-field-6" type="file" multiple accept="image/*" (change)="images = $any($event.target).files">
           <div class="row mt">@for (im of keep; track im) { <img class="thumb" [src]="im"> }</div></div>
-        <div><label>Serial number photo</label><input type="file" accept="image/*" (change)="serial = $any($event.target).files[0]"></div>
+        <div><label for="asset-form-field-7">Ảnh số sê-ri</label><input id="asset-form-field-7" type="file" accept="image/*" (change)="serial = $any($event.target).files[0]"></div>
       </div>
       <div class="col">
         <div class="grid g2">
-          <div><label>Price / hour</label><input type="number" min="0" formControlName="pricePerHour"></div>
-          <div><label>Price / day *</label><input type="number" min="1" formControlName="pricePerDay" [class.is-invalid]="inv('pricePerDay')"></div>
-          <div><label>Security deposit</label><input type="number" min="0" formControlName="deposit"></div>
-          <div><label>Purchase price (for ROI)</label><input type="number" min="0" formControlName="purchasePrice"></div>
-          <div><label>Buffer time (hours)</label><input type="number" min="0" formControlName="bufferHours"></div>
-          <div><label>Handover</label><select formControlName="delivery"><option value="pickup">Self pick-up</option><option value="delivery">Delivery</option><option value="both">Both</option></select></div>
+          <div><label for="asset-form-field-8">Giá thuê / giờ</label><input id="asset-form-field-8" type="number" min="0" formControlName="pricePerHour"></div>
+          <div><label for="asset-form-field-9">Giá thuê / ngày *</label><input id="asset-form-field-9" type="number" min="1" formControlName="pricePerDay" [class.is-invalid]="inv('pricePerDay')"></div>
+          <div><label for="asset-form-field-10">Tiền đặt cọc</label><input id="asset-form-field-10" type="number" min="0" formControlName="deposit"></div>
+          <div><label for="asset-form-field-11">Giá mua để theo dõi thu hồi vốn</label><input id="asset-form-field-11" type="number" min="0" formControlName="purchasePrice"></div>
+          <div><label for="asset-form-field-12">Thời gian kiểm tra giữa các lượt (giờ)</label><input id="asset-form-field-12" type="number" min="0" formControlName="bufferHours"></div>
+          <div><label for="asset-form-field-13">Giao nhận</label><select id="asset-form-field-13" formControlName="delivery"><option value="pickup">Nhận trực tiếp</option><option value="delivery">Giao tận nơi</option><option value="both">Cả hai hình thức</option></select></div>
         </div>
-        <div class="small mut">Buffer time blocks the item for inspection/maintenance after each rental (e.g. 2 hours).</div>
-        <div><label>Default handover address</label><input formControlName="address" placeholder="Type address and click the map to pin"></div>
-        <div id="pick" #pick></div><div class="small mut">📍 {{ form.value.lat?.toFixed?.(5) }}, {{ form.value.lng?.toFixed?.(5) }} – click the map to move the pin.</div>
+        <div class="small mut">Thời gian đệm dành cho kiểm tra và bảo trì sau mỗi lượt thuê (ví dụ 2 giờ).</div>
+        <div><label for="asset-form-field-14">Địa điểm bàn giao mặc định</label><input id="asset-form-field-14" formControlName="address" placeholder="Nhập địa chỉ và chọn vị trí trên bản đồ"></div>
+        <div id="pick" #pick></div><div class="small mut">📍 {{ form.value.lat?.toFixed?.(5) }}, {{ form.value.lng?.toFixed?.(5) }} – chọn trên bản đồ để di chuyển ghim.</div>
       </div>
     </div>
-    <div class="row mt"><button class="btn" [disabled]="form.invalid || busy">{{ id ? 'Save changes' : 'Publish listing' }}</button></div>
-    <div class="small mut mt">Verified (eKYC) owners publish instantly; others wait for admin moderation.</div>
+    <div class="row mt"><button class="btn" [disabled]="form.invalid || busy">{{ id ? 'Lưu thay đổi' : 'Gửi tin để duyệt' }}</button></div>
+    <div class="small mut mt">Tin mới được quản trị viên kiểm duyệt trước khi hiển thị cho người thuê.</div>
   </form>`,
 })
 export class AssetFormComponent implements OnInit, AfterViewInit, OnDestroy {
@@ -75,6 +75,6 @@ export class AssetFormComponent implements OnInit, AfterViewInit, OnDestroy {
     fd.append('keepImages', JSON.stringify(this.keep));
     Array.from(this.images || []).slice(0, 6).forEach(f => fd.append('images', f)); if (this.serial) fd.append('serialImage', this.serial);
     const req = this.id ? this.api.put<any>('/api/assets/' + this.id, fd) : this.api.post<any>('/api/assets', fd);
-    req.subscribe({ next: a => { this.toast.show(a.status === 'pending' ? 'Submitted – waiting for admin approval.' : 'Saved!'); this.router.navigateByUrl('/lender/assets'); }, error: () => this.busy = false });
+    req.subscribe({ next: a => { this.toast.show(a.status === 'pending' ? 'Đã gửi tin, đang chờ quản trị viên duyệt.' : 'Đã lưu!'); this.router.navigateByUrl('/lender/assets'); }, error: () => this.busy = false });
   }
 }

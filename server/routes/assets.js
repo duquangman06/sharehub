@@ -36,14 +36,14 @@ router.get('/mine', requireAuth, async (req, res) => {
 
 router.get('/:id', async (req, res) => {
   const a = await Asset.findById(req.params.id).populate('owner', 'name avatar bio kycStatus ratingAvg ratingCount trustScore avgResponseMinutes completedCount');
-  if (!a) return res.status(404).json({ message: 'Asset not found.' });
+  if (!a) return res.status(404).json({ message: 'Không tìm thấy thiết bị.' });
   res.json(a);
 });
 
 // Ngày đã kín (booking + bảo dưỡng + buffer time)
 router.get('/:id/availability', async (req, res) => {
   const a = await Asset.findById(req.params.id);
-  if (!a) return res.status(404).json({ message: 'Asset not found.' });
+  if (!a) return res.status(404).json({ message: 'Không tìm thấy thiết bị.' });
   const bookings = await Booking.find({ asset: a._id, status: { $in: ACTIVE } });
   const bufferDays = (a.bufferHours || 0) / 24;
   const ranges = bookings.map(b => ({ from: b.startDate, to: new Date(+b.endDate + bufferDays * 86400000), type: 'booked' }));
@@ -69,7 +69,7 @@ function applyBody(a, body, files) {
 }
 
 router.post('/', requireAuth, fields, async (req, res) => {
-  if (!req.body.title || !req.body.pricePerDay || !req.body.category) return res.status(400).json({ message: 'Title, category and daily price are required.' });
+  if (!req.body.title || !req.body.pricePerDay || !req.body.category) return res.status(400).json({ message: 'Vui lòng nhập tên thiết bị, danh mục và giá thuê mỗi ngày.' });
   const a = new Asset({ owner: req.user._id, title: req.body.title, category: req.body.category, pricePerDay: +req.body.pricePerDay });
   applyBody(a, req.body, req.files);
   if (![a.pricePerDay, a.deposit, a.bufferHours, a.purchasePrice, a.pricePerHour].every(n => Number.isFinite(n) && n >= 0) || a.pricePerDay <= 0) return res.status(400).json({ message: 'Giá thuê phải lớn hơn 0; cọc và các khoản khác không được âm.' });
@@ -81,7 +81,7 @@ router.post('/', requireAuth, fields, async (req, res) => {
 
 router.put('/:id', requireAuth, fields, async (req, res) => {
   const a = await Asset.findOne({ _id: req.params.id, owner: req.user._id });
-  if (!a) return res.status(404).json({ message: 'Asset not found.' });
+  if (!a) return res.status(404).json({ message: 'Không tìm thấy thiết bị.' });
   applyBody(a, req.body, req.files);
   if (![a.pricePerDay, a.deposit, a.bufferHours, a.purchasePrice, a.pricePerHour].every(n => Number.isFinite(n) && n >= 0) || a.pricePerDay <= 0) return res.status(400).json({ message: 'Giá thuê phải lớn hơn 0; cọc và các khoản khác không được âm.' });
   if (req.body.status && ['active', 'hidden'].includes(req.body.status) && a.status !== 'pending' && a.status !== 'rejected') a.status = req.body.status === 'active' ? 'pending' : 'hidden';
@@ -97,7 +97,7 @@ router.delete('/:id', requireAuth, async (req, res) => {
 
 router.post('/:id/block', requireAuth, async (req, res) => {
   const a = await Asset.findOne({ _id: req.params.id, owner: req.user._id });
-  if (!a) return res.status(404).json({ message: 'Asset not found.' });
+  if (!a) return res.status(404).json({ message: 'Không tìm thấy thiết bị.' });
   a.blockedRanges.push({ from: new Date(req.body.from), to: new Date(req.body.to), reason: req.body.reason || 'Maintenance' });
   await a.save();
   res.json(a);

@@ -15,11 +15,11 @@ router.get('/analytics', async (req, res) => {
   const utilization = assets.length ? Math.min(100, Math.round(rentedDays / (daysInMonth * assets.length) * 100)) : 0;
   const weekly = Array.from({ length: 8 }, (_, i) => {
     const to = new Date(now - i * 7 * 86400000), from = new Date(+to - 7 * 86400000);
-    return { label: `W${8 - i}`, revenue: done.filter(b => b.startDate >= from && b.startDate < to).reduce((s, b) => s + net(b), 0) };
+    return { label: `Tuần ${8 - i}`, revenue: done.filter(b => b.startDate >= from && b.startDate < to).reduce((s, b) => s + net(b), 0) };
   }).reverse();
   const monthly = Array.from({ length: 6 }, (_, i) => {
     const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1), e = new Date(d.getFullYear(), d.getMonth() + 1, 1);
-    return { label: d.toLocaleString('en', { month: 'short' }), revenue: done.filter(b => b.startDate >= d && b.startDate < e).reduce((s, b) => s + net(b), 0) };
+    return { label: d.toLocaleString('vi-VN', { month: 'short' }), revenue: done.filter(b => b.startDate >= d && b.startDate < e).reduce((s, b) => s + net(b), 0) };
   });
   const perAsset = assets.map(a => {
     const rev = done.filter(b => String(b.asset._id) === String(a._id)).reduce((s, b) => s + net(b), 0);

@@ -6,7 +6,7 @@ const { haversine, ACTIVE } = require('../utils');
 
 router.post('/', requireAuth, async (req, res) => {
   const { title, category, budget, dateFrom, dateTo, radius, lat, lng, details } = req.body;
-  if (!category || !budget || !lat || !lng) return res.status(400).json({ message: 'Category, budget and location are required.' });
+  if (!category || !budget || !lat || !lng) return res.status(400).json({ message: 'Vui lòng chọn danh mục, ngân sách và vị trí.' });
   const assets = await Asset.find({ status: 'active', category, pricePerDay: { $lte: +budget }, owner: { $ne: req.user._id } }).populate('owner', 'name avatar ratingAvg trustScore');
   let busy = new Set();
   if (dateFrom && dateTo) busy = new Set((await Booking.find({ status: { $in: ACTIVE }, startDate: { $lt: new Date(dateTo) }, endDate: { $gt: new Date(dateFrom) } }).distinct('asset')).map(String));

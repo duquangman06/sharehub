@@ -18,7 +18,7 @@ router.put('/me', requireAuth, upload.single('avatar'), async (req, res) => {
 router.post('/me/kyc', requireAuth, (req, res, next) => { if (['verified','pending'].includes(req.user.kycStatus)) return res.status(409).json({ message: 'Hồ sơ đã xác minh hoặc đang xử lý.' }); next(); }, require('../middleware/kyc-upload').array('docs', 2), async (req, res) => {
   if (req.user.kycStatus === 'verified' || req.user.kycStatus === 'pending') return res.status(409).json({ message: 'Hồ sơ đã xác minh hoặc đang được xử lý.' });
   if (req.body.consent !== 'true') return res.status(400).json({ message: 'Cần đồng ý xử lý giấy tờ.' });
-  if (req.files?.length !== 2) return res.status(400).json({ message: 'Please upload ID images.' });
+  if (req.files?.length !== 2) return res.status(400).json({ message: 'Vui lòng tải lên đủ ảnh hai mặt giấy tờ.' });
   await require('../services/privacy').protectLegacyDocuments(req.user.kycImages);
   req.user.kycImages = req.files.map(f => '/api/users/me/kyc-documents/' + f.filename);
   req.user.kycConsentAt = new Date();
@@ -45,7 +45,7 @@ router.post('/me/trust-events/:id/appeal', requireAuth, async (req, res) => {
 });
 router.get('/:id', async (req, res) => {
   const u = await User.findById(req.params.id);
-  if (!u) return res.status(404).json({ message: 'User not found.' });
+  if (!u) return res.status(404).json({ message: 'Không tìm thấy thành viên.' });
   const reviews = await Review.find({ to: u._id }).sort('-createdAt').limit(10).populate('from', 'name avatar');
   const assets = await Asset.find({ owner: u._id, status: 'active' }).limit(8);
   const events = await TrustEvent.find({ user: u._id, status: 'confirmed' }).select('kind summary penalty createdAt appealAt').sort('-createdAt').limit(20);

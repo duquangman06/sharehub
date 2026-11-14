@@ -51,7 +51,7 @@ router.get('/disputes', async (req, res) => {
 });
 router.post('/disputes/:id/resolve', async (req, res) => {
   const b = await Booking.findById(req.params.id);
-  if (!b || b.status !== 'disputed') return res.status(400).json({ message: 'No open dispute.' });
+  if (!b || b.status !== 'disputed') return res.status(400).json({ message: 'Không có tranh chấp đang mở.' });
   const pct = Number(req.body.refundToRenterPercent);
   if (!Number.isFinite(pct) || pct < 0 || pct > 100 || String(req.body.note || '').trim().length < 10) return res.status(400).json({ message: 'Tỷ lệ hoàn cọc phải từ 0–100 và cần căn cứ xử lý.' });
   const refund = Math.round(b.deposit * pct / 100), comp = b.deposit - refund;

@@ -26,7 +26,7 @@ router.get('/:userId', async (req, res) => {
 });
 
 router.post('/:userId', upload.single('image'), async (req, res) => {
-  if (!req.body.text && !req.file) return res.status(400).json({ message: 'Empty message.' });
+  if (!req.body.text && !req.file) return res.status(400).json({ message: 'Tin nhắn chưa có nội dung.' });
   const m = await Message.create({ from: req.user._id, to: req.params.userId, text: req.body.text, booking: req.body.booking || undefined,
     asset: req.body.asset || undefined, image: req.file ? '/uploads/' + req.file.filename : undefined });
   res.status(201).json(m);

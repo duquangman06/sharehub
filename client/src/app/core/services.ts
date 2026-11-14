@@ -1,3 +1,4 @@
+import { VI_CATEGORIES } from '../shared/vietnamese';
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { catchError, retry, throwError, tap, of } from 'rxjs';
@@ -44,7 +45,7 @@ export class ApiService {
   put<T>(url: string, body: any = {}) { return this.http.put<T>(url, body).pipe(catchError(e => this.fail(e))); }
   del<T>(url: string) { return this.http.delete<T>(url).pipe(catchError(e => this.fail(e))); }
   private fail(e: any) {
-    const text = e.status === 0 ? 'Cannot reach the server. Is the API running?' : (e.error?.message || 'Something went wrong');
+    const text = e.status === 0 ? 'Chưa kết nối được hệ thống. Vui lòng thử lại sau.' : (e.error?.message || 'Có lỗi xảy ra. Vui lòng thử lại.');
     this.toast.show(text, true);
     return throwError(() => e);
   }
@@ -54,7 +55,7 @@ export class ApiService {
 export class CatalogService {
   private api = inject(ApiService);
   categories = signal<Category[]>([]);
-  loadCategories() { this.api.get<Category[]>('/api/categories').subscribe(c => this.categories.set(c)); }
+  loadCategories() { this.api.get<Category[]>('/api/categories').subscribe(c => this.categories.set(c.map(item => ({ ...item, name: VI_CATEGORIES[item.slug] || item.name })))); }
   icon(slug: string) { return this.categories().find(c => c.slug === slug)?.icon || '📦'; }
   name(slug: string) { return this.categories().find(c => c.slug === slug)?.name || slug; }
   search(params: any) { return this.api.get<Asset[]>('/api/assets', params); }

@@ -1,13 +1,13 @@
 const { User } = require('../models');
 // Xác thực dựa trên Session (express-session) – Chương VIII
 exports.requireAuth = async (req, res, next) => {
-  if (!req.session.userId) return res.status(401).json({ message: 'Please sign in first.' });
+  if (!req.session.userId) return res.status(401).json({ message: 'Vui lòng đăng nhập để tiếp tục.' });
   req.user = await User.findById(req.session.userId);
-  if (!req.user) return res.status(401).json({ message: 'Session expired.' });
+  if (!req.user) return res.status(401).json({ message: 'Phiên đăng nhập đã hết hạn.' });
   if (req.user.accountStatus === 'suspended') return res.status(403).json({ message: 'Tài khoản đang tạm khóa. Vui lòng liên hệ ShareHub.' });
   next();
 };
 exports.requireAdmin = (req, res, next) => {
-  if (req.user?.role !== 'admin') return res.status(403).json({ message: 'Admin only.' });
+  if (req.user?.role !== 'admin') return res.status(403).json({ message: 'Chỉ quản trị viên được truy cập.' });
   next();
 };
