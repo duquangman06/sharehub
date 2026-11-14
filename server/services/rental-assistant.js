@@ -5,8 +5,9 @@ const categories = {'cameras':'Máy ảnh','camping-gear':'Đồ cắm trại','
 const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/đ/g,'d');
 const today = () => new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 const amount = n => n.toLocaleString('vi-VN')+'đ';
+let resolvedGeminiModel=null;
 function provider() {
- if(process.env.GEMINI_API_KEY)return {kind:'gemini',key:process.env.GEMINI_API_KEY,model:process.env.GEMINI_MODEL||'gemini-2.5-flash-lite'};
+ if(process.env.GEMINI_API_KEY)return {kind:'gemini',key:process.env.GEMINI_API_KEY,model:process.env.GEMINI_MODEL||resolvedGeminiModel||'gemini-2.5-flash-lite'};
  const key=process.env.AI_GATEWAY_API_KEY||process.env.VERCEL_OIDC_TOKEN;
  return key?{kind:'gateway',key,model:process.env.AI_GATEWAY_MODEL||'google/gemini-2.5-flash-lite'}:null;
 }
@@ -57,7 +58,20 @@ async function plan(message,history,filters,cards,fetcher=fetch) {
   url='https://ai-gateway.vercel.sh/v1/chat/completions';headers={'content-type':'application/json',authorization:'Bearer '+config.key};
   body={model:config.model,messages:[{role:'system',content:facts},{role:'user',content:user}],temperature:0.15,max_tokens:1800,response_format:{type:'json_object'}};
  }
- const response=await fetcher(url,{method:'POST',headers,body:JSON.stringify(body),signal:AbortSignal.timeout(22000)});
+ let response=await fetcher(url,{method:'POST',headers,body:JSON.stringify(body),signal:AbortSignal.timeout(22000)});
+ // Resolve a retired default from Google's own authenticated model catalogue.
+ // An explicitly configured model is never silently replaced.
+ if(config.kind==='gemini'&&response.status===404&&!process.env.GEMINI_MODEL){
+  const listing=await fetcher('https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000',{headers:{'x-goog-api-key':config.key},signal:AbortSignal.timeout(8000)});
+  if(listing.ok){
+   const catalogue=await listing.json();
+   const names=(catalogue.models||[]).filter(m=>m.supportedGenerationMethods?.includes('generateContent')).map(m=>m.name?.replace(/^models\//,''))
+    .filter(n=>typeof n==='string'&&/^gemini-[a-z0-9.-]+$/.test(n)&&/flash/.test(n)&&!/image|audio|tts|live|batch|exp|embedding/.test(n));
+   names.sort((a,b)=>Number(b.includes('lite'))-Number(a.includes('lite'))||Number(a.includes('preview'))-Number(b.includes('preview'))||b.localeCompare(a,undefined,{numeric:true}));
+   const replacement=names.find(n=>n!==config.model);
+   if(replacement){resolvedGeminiModel=replacement;response=await fetcher(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(replacement)}:generateContent`,{method:'POST',headers,body:JSON.stringify(body),signal:AbortSignal.timeout(22000)});}
+  }
+ }
  if(!response.ok){
   const e=new Error('AI provider unavailable');e.providerStatus=response.status;
   const failure=await response.json().catch(()=>({}));const description=String(failure.error?.message||'');
@@ -120,7 +134,7 @@ async function answer(message,conversation,userId,fetcher=fetch) {
 }
 async function diagnostics(fetcher=fetch){
  const c=provider();if(!c)return {configured:false,ok:false,reason:'not_configured'};
- try{await plan('Tiền cọc và tiền thuê khác nhau thế nào?',[],{},[],fetcher);return {configured:true,ok:true,provider:c.kind,model:c.model};}
+ try{await plan('Tiền cọc và tiền thuê khác nhau thế nào?',[],{},[],fetcher);return {configured:true,ok:true,provider:c.kind,model:provider().model};}
  catch(e){return {configured:true,ok:false,provider:c.kind,model:c.model,status:e.providerStatus||null,reason:e.providerReason||'invalid_response'};}
 }
 module.exports={answer,cleanPlan,dateCheck,retrieve,provider,basic,diagnostics};

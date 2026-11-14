@@ -46,7 +46,7 @@ test('real provider planning carries prior context but cannot set product prices
 test('unavailable AI is explicitly marked basic and does not falsely claim confirmed availability',async()=>{
  const result=await assistant.answer('Thuê máy ảnh 2 ngày',{},null,async()=>{throw Error('Must not call provider without key');});
  assert.equal(result.mode,'basic');assert.equal(result.reason,'not_configured');assert.equal(result.cards[0].availability,'not_checked');assert.match(result.text,/ngày nhận/);
- process.env.GEMINI_API_KEY='test-only';const offline=await assistant.answer('tiền cọc là gì',{},null,async()=>({ok:false,status:429}));assert.equal(offline.mode,'basic');assert.equal(offline.reason,'provider_unavailable');
+ process.env.GEMINI_API_KEY='test-only';const offline=await assistant.answer('tiền cọc là gì',{},null,async()=>({ok:false,status:429,json:async()=>({error:{message:'Quota exceeded'}})}));assert.equal(offline.mode,'basic');assert.equal(offline.reason,'provider_unavailable');
 });
 test('invalid dates stop catalog lookup before any availability claim',async()=>{
  const result=await assistant.answer('Thuê máy ảnh từ 2020-01-01 đến 2020-01-03',{});assert.equal(result.cards.length,0);assert.match(result.text,/chưa hợp lệ/);assert.equal(query,null);
@@ -67,4 +67,9 @@ test('admin diagnostics classify upstream errors without exposing keys or raw pr
  process.env.GEMINI_API_KEY='never-return-this-secret';
  const result=await assistant.diagnostics(async()=>({ok:false,status:429,json:async()=>({error:{message:'Quota exceeded. never-return-this-secret'}})}));
  assert.equal(result.reason,'quota');assert.equal(result.status,429);assert(!JSON.stringify(result).includes('never-return-this-secret'));
+});
+test('retired default resolves only a supported text model from the fixed Google catalogue',async()=>{
+ process.env.GEMINI_API_KEY='test-only';let calls=0;
+ const fake=async(url,options)=>{calls++;if(calls===1)return {ok:false,status:404};if(calls===2){assert.equal(url,'https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000');return {ok:true,json:async()=>({models:[{name:'models/gemini-3.5-flash-image',supportedGenerationMethods:['generateContent']},{name:'models/gemini-3.5-flash-lite',supportedGenerationMethods:['generateContent']}]})};}assert(url.includes('/models/gemini-3.5-flash-lite:generateContent'));return {ok:true,json:async()=>({candidates:[{content:{parts:[{text:JSON.stringify({intent:'faq',reply:'Tiền cọc tách riêng tiền thuê.',filters:{}})}]}}]})};};
+ const result=await assistant.diagnostics(fake);assert.equal(result.ok,true);assert.equal(result.model,'gemini-3.5-flash-lite');assert.equal(calls,3);
 });

@@ -13,7 +13,11 @@ router.use(async(req,res,next)=>{
  next();
 });
 router.get('/thread',async(req,res)=>{const c=await Chat.findOne({key:req.assistantKey,expiresAt:{$gt:new Date()}}).lean();res.json({messages:c?.messages||[],configured:!!assistant.provider()});});
-router.post('/diagnostics',requireAuth,requireAdmin,async(req,res)=>res.json(await assistant.diagnostics()));
+router.post('/diagnostics',requireAuth,requireAdmin,async(req,res)=>{
+ const now=Date.now();const quota=await Quota.findOneAndUpdate({_id:'diagnostics:'+Math.floor(now/600000)},{$inc:{count:1},$set:{expiresAt:new Date(now+86400000)}},{upsert:true,new:true});
+ if(quota.count>5)return res.status(429).json({message:'Đã đạt giới hạn kiểm tra kết nối. Vui lòng thử lại sau.'});
+ res.json(await assistant.diagnostics());
+});
 router.post('/message',async(req,res)=>{
  const message=typeof req.body?.message==='string'?req.body.message.trim():'';
  if(!message||message.length>1200)return res.status(400).json({message:'Nhập câu hỏi từ 1 đến 1.200 ký tự.'});
