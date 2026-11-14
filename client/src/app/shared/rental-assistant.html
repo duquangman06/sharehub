@@ -1,0 +1,20 @@
+<button #launcher class="assistant-launcher" [class.is-open]="open()" (click)="toggle()" [attr.aria-expanded]="open()" aria-controls="sharehub-assistant" aria-label="Mở trợ lý ShareHub AI" aria-haspopup="dialog">
+ <span class="orbit" aria-hidden="true"></span><svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M7 7h18v14H15l-6 5v-5H7V7Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="m17 10 1.1 3.1 3.1 1.1-3.1 1.1-1.1 3.1-1.1-3.1-3.1-1.1 3.1-1.1L17 10Z" fill="currentColor"/></svg><span class="ai-badge">AI</span><span class="launcher-label">Hỏi ShareHub <span>✦</span></span>
+</button>
+@if(open()){
+ <section id="sharehub-assistant" class="assistant-panel" role="dialog" aria-modal="false" aria-labelledby="assistant-title" (keydown.escape)="close()">
+  <header class="assistant-header"><div class="assistant-avatar" aria-hidden="true">✦</div><div><h2 id="assistant-title">ShareHub AI</h2><p><span class="online-dot"></span> Cùng bạn tìm đúng thiết bị</p></div><button class="assistant-close" (click)="close()" aria-label="Đóng trợ lý">✕</button></header>
+  <div class="assistant-purpose">Gợi ý từ thiết bị trên ShareHub · Giá & lịch do hệ thống kiểm tra</div>
+  @if(mode()==='basic'){<div class="assistant-notice" role="status">AI đang chưa khả dụng. Hiện mình hỗ trợ tìm thiết bị và trả lời cơ bản từ dữ liệu ShareHub.</div>}
+  <div #log class="assistant-log" role="log" aria-live="polite" aria-relevant="additions text" aria-label="Hội thoại tư vấn thuê">
+   @if(!messages().length){<div class="assistant-welcome"><div class="welcome-spark" aria-hidden="true">✦</div><h3>Kế hoạch của bạn là gì?</h3><p>Kể mình nghe bạn cần đồ gì, thuê bao lâu và ngân sách khoảng bao nhiêu nhé.</p><div class="assistant-prompts">@for(prompt of prompts;track prompt){<button (click)="send(prompt)" [disabled]="busy()||loading()">{{prompt}} <span aria-hidden="true">↗</span></button>}</div></div>}
+   @if(loading()){<p class="assistant-status">Đang tải hội thoại…</p>}
+   @for(message of messages();track $index){<article class="assistant-message" [class.from-user]="message.role==='user'"><span class="message-label">{{message.role==='user'?'Bạn':'ShareHub'}}</span><p>{{message.text}}</p>
+    @if(message.cards?.length){<div class="assistant-results">@for(card of message.cards;track card.id){<a class="assistant-asset" [routerLink]="['/assets',card.id]" (click)="close()"><div class="asset-top">@if(card.image){<img [src]="card.image" [alt]="card.title" loading="lazy">}<div><span class="asset-category">{{card.category}}</span><h4>{{card.title}}</h4><b>{{money(card.pricePerDay)}}<small> / ngày</small></b></div></div><div class="asset-breakdown"><span>Thuê {{card.days}} ngày <b>{{money(card.rentalFee)}}</b></span><span>Cọc riêng <b>{{money(card.deposit)}}</b></span><span>Tổng ước tính <b>{{money(card.total)}}</b></span></div><p class="asset-location">⌖ {{card.address}}</p><p class="asset-owner">✓ {{card.ownerName}} · Đã xác minh</p><div class="asset-action"><span>{{card.availability==='checked'?'Đã đối chiếu lịch yêu cầu':'Chưa kiểm tra lịch cụ thể'}}</span><b>Xem thiết bị ↗</b></div></a>}</div>}
+   </article>}
+   @if(busy()){<div class="assistant-thinking" role="status"><span></span><span></span><span></span><small>Đang đối chiếu thông tin…</small></div>}
+   @if(error()){<div class="assistant-error" role="alert">{{error()}}</div>}
+  </div>
+  <footer class="assistant-composer"><label class="sr-only" for="assistant-input">Câu hỏi cho ShareHub AI</label><div class="composer-row"><textarea #input id="assistant-input" [(ngModel)]="draft" (keydown)="key($event)" maxlength="1200" rows="2" placeholder="Ví dụ: Thuê máy ảnh 2 ngày ở Biên Hòa…" [disabled]="busy()" aria-describedby="assistant-privacy"></textarea><button class="assistant-send" (click)="send()" [disabled]="busy()||loading()||!draft.trim()" aria-label="Gửi câu hỏi">↑</button></div><p id="assistant-privacy">Câu hỏi được xử lý bởi AI và lưu tối đa 30 ngày. Không gửi giấy tờ, mật khẩu hay thông tin thẻ. Tư vấn không giữ chỗ.</p></footer>
+ </section>
+}

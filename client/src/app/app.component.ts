@@ -1,9 +1,10 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService, CatalogService, ToastService } from './core/services';
+import { RentalAssistantComponent } from './shared/rental-assistant';
 
 @Component({
-  selector: 'app-root', standalone: true, imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  selector: 'app-root', standalone: true, imports: [RouterOutlet, RouterLink, RouterLinkActive, RentalAssistantComponent],
   template: `
   <a class="skip-link" href="#main-content">Đến nội dung chính</a>
   <header class="site-header"><div class="container site-nav">
@@ -17,6 +18,7 @@ import { AuthService, CatalogService, ToastService } from './core/services';
     <div class="footer-grid"><div class="footer-brand"><a class="brand" routerLink="/"><img src="/brand/sharehub-mark-v2.svg" width="40" height="40" alt=""><span>ShareHub</span></a><p>Kết nối thiết bị đang nhàn rỗi với những kế hoạch đang chờ. Thuê linh hoạt, rõ chi phí, cùng có trách nhiệm.</p></div><div><h3>Khám phá</h3><a routerLink="/search">Tìm thiết bị</a><a routerLink="/post-need">Đăng nhu cầu thuê</a><a routerLink="/about">Câu chuyện ShareHub</a></div><div><h3>Dành cho bạn</h3><a routerLink="/profile">Hồ sơ & xác minh</a><a routerLink="/my-rentals">Đơn thuê của tôi</a><a routerLink="/messages">Hộp thư</a></div><div><h3>Dành cho chủ tài sản</h3><a routerLink="/lender/assets/new">Đăng cho thuê</a><a routerLink="/lender/orders">Lịch & yêu cầu thuê</a><a routerLink="/lender/analytics">Thống kê cho thuê</a></div></div><div class="footer-bottom"><span>© {{ year }} ShareHub · Nền tảng chia sẻ thiết bị</span><span>Được xây dựng cho những kết nối tại Việt Nam <span class="footer-spark">✳</span></span></div>
   </div></footer>
   @if (toast.msg(); as t) { <div class="toast" role="status" aria-live="polite" [class.bad]="t.bad"><span aria-hidden="true">{{ t.bad ? '!' : '✓' }}</span>{{ t.text }}</div> }
+  <app-rental-assistant />
   `,
 })
 export class AppComponent implements OnInit {
